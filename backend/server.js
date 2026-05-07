@@ -17,9 +17,32 @@ await connectDB();
 
 const app = express();
 
+const normalizeOrigins = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      try {
+        return new URL(entry).origin;
+      } catch {
+        return entry;
+      }
+    });
+};
+
+const allowedOrigins = normalizeOrigins(process.env.CLIENT_URL);
+if (allowedOrigins.length === 0) {
+  allowedOrigins.push("http://localhost:5173");
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true
   })
 );
@@ -48,7 +71,8 @@ const server = app.listen(PORT, () => {
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173"
+    origin: allowedOrigins,
+    credentials: true
   }
 });
 
